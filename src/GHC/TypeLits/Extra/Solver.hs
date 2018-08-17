@@ -28,6 +28,7 @@ import Control.Monad.Trans.Maybe (MaybeT (..))
 import Data.Maybe                (catMaybes)
 import GHC.TcPluginM.Extra       (evByFiat, lookupModule, lookupName,
                                   tracePlugin)
+import Math.NumberTheory.Logarithms
 
 -- GHC API
 import FastString (fsLit)
@@ -145,8 +146,16 @@ simplifyExtra eqs = tcPluginTrace "simplifyExtra" (ppr eqs) >> simples [] eqs
         (I i,I j)
           | (i <= j) == b -> simples (((,) <$> evMagic ct <*> pure ct):evs) eqs'
           | otherwise     -> return  (Impossible eq)
+        (I x', Exp (I b') y) -> case x' of
+            0 -> simples evs eqs'
+            _ -> simples evs (Right (ct, I (fromIntegral $ integerCeilLogBase b' x'), y, b):eqs')
         _ -> simples evs eqs'
 
+integerCeilLogBase :: Integer -> Integer -> Int
+integerCeilLogBase b y
+  | y == b ^ x = x
+  | otherwise = x + 1
+  where x = integerLogBase b y
 
 -- Extract the Nat equality constraints
 toNatEquality :: ExtraDefs -> Ct -> MaybeT TcPluginM (Either NatEquality NatInEquality)
